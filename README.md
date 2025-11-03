@@ -2,6 +2,10 @@
 
 [![Fuzzing Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/cryptofuzz.svg)](https://oss-fuzz.com/coverage-report/job/libfuzzer_asan_cryptofuzz/latest)
 
+## Status
+
+Cryptofuzz was created and maintained by [Guido Vranken](https://github.com/guidovranken) and credit for its design, development and impact should be attributed to Guido. Following [Guido's decision to withdraw](https://github.com/google/oss-fuzz/pull/12746#issuecomment-2492544697) from the open-source community, this fork was created to keep the code available and support community contributions. 
+
 ## Documentation
 
 For building Cryptofuzz, please refer to [`docs/building.md`](docs/building.md).
