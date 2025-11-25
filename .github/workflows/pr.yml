@@ -1,5 +1,12 @@
 name: Build cryptofuzz
-on: [pull_request]
+on:
+  pull_request:
+    branches: [ main, master ]
+  push:
+    branches: [ main, master ]
+  release:
+    types: [ released ]
+  workflow_dispatch:
 jobs:
   build:
     name: Build with ${{ matrix.module.name }}
