@@ -26,7 +26,9 @@ module.a: module.o bn_ops.o
 	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libfreebl_static.a && \
 	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libhw-acc-crypto-avx.a && \
 	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libhw-acc-crypto-avx2.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libgcm-aes-x86_c_lib.a
+	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libgcm-aes-x86_c_lib.a && \
+	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libintel-gcm-s_lib.a && \
+	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libintel-gcm-wrap_c_lib.a
 
 	ar rcs module.a module.o bn_ops.o tmp/*.o
 	rm -rf tmp/
@@ -59,6 +61,8 @@ poc : poc.cpp
 		$(NSS_NSPR_PATH)/dist/Debug/lib/libhw-acc-crypto-avx.a \
 		$(NSS_NSPR_PATH)/dist/Debug/lib/libhw-acc-crypto-avx2.a \
 		$(NSS_NSPR_PATH)/dist/Debug/lib/libgcm-aes-x86_c_lib.a \
+		$(NSS_NSPR_PATH)/dist/Debug/lib/libintel-gcm-s_lib.a \
+		$(NSS_NSPR_PATH)/dist/Debug/lib/libintel-gcm-wrap_c_lib.a \
 		-lsqlite3 \
 		-o poc
 bn_ops.o: bn_ops.cpp bn_ops.h
