@@ -1,5 +1,5 @@
 *.o
-cryptofuzz
+/cryptofuzz
 generate_corpus
 generate_dict
 modules/*/*.a
