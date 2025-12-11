@@ -875,6 +875,7 @@ class KDF_SRTP : public Operation {
             key.Serialize(ds);
             salt.Serialize(ds);
             ds.Put<>(kdr);
+            ds.Put<>(index);
             ds.Put<>(key1Size);
             ds.Put<>(key2Size);
             ds.Put<>(key3Size);
@@ -931,6 +932,7 @@ class KDF_SRTCP : public Operation {
             key.Serialize(ds);
             salt.Serialize(ds);
             ds.Put<>(kdr);
+            ds.Put<>(index);
             ds.Put<>(key1Size);
             ds.Put<>(key2Size);
             ds.Put<>(key3Size);
@@ -1644,6 +1646,8 @@ class DSA_PrivateToPublic : public Operation {
                 (modifier == rhs.modifier);
         }
         void Serialize(Datasource& ds) const {
+            g.Serialize(ds);
+            p.Serialize(ds);
             priv.Serialize(ds);
         }
 };
