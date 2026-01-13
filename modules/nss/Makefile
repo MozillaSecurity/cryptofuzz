@@ -28,7 +28,9 @@ module.a: module.o bn_ops.o
 	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libhw-acc-crypto-avx2.a && \
 	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libghash-aes-x86_c_lib.a && \
 	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libgcm.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libintel-gcm-wrap_c_lib.a
+	if [ -f "$(NSS_NSPR_PATH)/dist/Debug/lib/libintel-gcm-wrap_c_lib.a" ]; then \
+		ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libintel-gcm-wrap_c_lib.a; \
+	fi
 
 	ar rcs module.a module.o bn_ops.o tmp/*.o
 	rm -rf tmp/
@@ -62,7 +64,7 @@ poc : poc.cpp
 		$(NSS_NSPR_PATH)/dist/Debug/lib/libhw-acc-crypto-avx2.a \
 		$(NSS_NSPR_PATH)/dist/Debug/lib/libghash-aes-x86_c_lib.a \
 		$(NSS_NSPR_PATH)/dist/Debug/lib/libgcm.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libintel-gcm-wrap_c_lib.a \
+		$(shell [ -f $(NSS_NSPR_PATH)/dist/Debug/lib/libintel-gcm-wrap_c_lib.a ] && echo $(NSS_NSPR_PATH)/dist/Debug/lib/libintel-gcm-wrap_c_lib.a) \
 		-lsqlite3 \
 		-o poc
 bn_ops.o: bn_ops.cpp bn_ops.h
