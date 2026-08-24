@@ -28,6 +28,8 @@ module.a: module.o bn_ops.o
 	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libhw-acc-crypto-avx2.a && \
 	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libghash-aes-x86_c_lib.a && \
 	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libgcm.a && \
+	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libpqcwrap_static.a && \
+	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libcrux.a && \
 	if [ -f "$(NSS_NSPR_PATH)/dist/Debug/lib/libintel-gcm-wrap_c_lib.a" ]; then \
 		ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libintel-gcm-wrap_c_lib.a; \
 	fi
@@ -59,7 +61,9 @@ poc : poc.cpp
 		$(NSS_NSPR_PATH)/nspr/Debug/pr/src/libnspr4.a \
 		$(NSS_NSPR_PATH)/dist/Debug/lib/libplc4.a \
 		$(NSS_NSPR_PATH)/dist/Debug/lib/libnss_static.a \
+		$(NSS_NSPR_PATH)/dist/Debug/lib/libpqcwrap_static.a \
 		$(NSS_NSPR_PATH)/dist/Debug/lib/libfreebl_static.a \
+		$(NSS_NSPR_PATH)/dist/Debug/lib/libcrux.a \
 		$(NSS_NSPR_PATH)/dist/Debug/lib/libhw-acc-crypto-avx.a \
 		$(NSS_NSPR_PATH)/dist/Debug/lib/libhw-acc-crypto-avx2.a \
 		$(NSS_NSPR_PATH)/dist/Debug/lib/libghash-aes-x86_c_lib.a \
