@@ -2,40 +2,51 @@ all: module.a
 
 CXXFLAGS += -Wall -Wextra -Werror -std=c++17 -I ../../include -I ../../fuzzing-headers/include -DFUZZING_HEADERS_NO_IMPL
 
+NSS_LIB_PATH = $(abspath $(NSS_NSPR_PATH))/dist/Debug/lib
+
+# NSS spreads its static build over a set of archives that changes with the NSS
+# version, the target architecture and the build flags. freebl alone ships its
+# hardware-accelerated and post-quantum code as separate libraries
+# (libhw-acc-crypto-avx*, libghash-aes-x86_c_lib, libgcm, libintel-gcm-wrap*,
+# libsha-x86_c_lib, libpqcwrap_static, libcrux, ...), and naming them one by one
+# has broken this module every time NSS added, split or renamed one. Take
+# whatever NSS installed instead, and skip only what must not be mixed in:
+#
+#   lib<x>.a next to lib<x>_static.a - the copy built for the shared library,
+#       which defines the same symbols as its _static counterpart (libfreebl,
+#       libpk11wrap, libsoftokn, libpqcwrap, ...)
+#   *-nodepend*                      - freebl's FREEBL_NO_DEPEND variants,
+#       likewise duplicates of the libraries we do want
+#   *-testlib.a                      - test-only libraries
+#   libsqlite.a                      - NSS's vendored SQLite; the system one is
+#       linked below
+NSS_ALL_LIBS = $(notdir $(wildcard $(NSS_LIB_PATH)/*.a))
+NSS_SKIP_LIBS = \
+	$(patsubst %_static.a,%.a,$(filter %_static.a,$(NSS_ALL_LIBS))) \
+	$(foreach lib,$(NSS_ALL_LIBS),$(if $(findstring -nodepend,$(lib)),$(lib))) \
+	$(filter %-testlib.a,$(NSS_ALL_LIBS)) \
+	libsqlite.a
+NSS_LIBS = $(addprefix $(NSS_LIB_PATH)/,$(filter-out $(NSS_SKIP_LIBS),$(NSS_ALL_LIBS)))
+
 module.a: module.o bn_ops.o
 	test $(NSS_NSPR_PATH)
+	test -n "$(strip $(NSS_LIBS))"
+
 	rm -rf module.a
 	rm -rf tmp/
-	mkdir tmp/
-	cd tmp && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libnss_static.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libcertdb.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libpk11wrap_static.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libsoftokn_static.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libcerthi.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libcryptohi.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libnsspki.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libnssb.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libnssdev.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libnssutil.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libplds4.a && \
-	ar x $(NSS_NSPR_PATH)/nspr/Debug/pr/src/libnspr4.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libplc4.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libnss_static.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libsha-x86_c_lib.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libfreebl_static.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libhw-acc-crypto-avx.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libhw-acc-crypto-avx2.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libghash-aes-x86_c_lib.a && \
-	ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libgcm.a && \
-	if [ -f "$(NSS_NSPR_PATH)/dist/Debug/lib/libintel-gcm-wrap_c_lib.a" ]; then \
-		ar x $(NSS_NSPR_PATH)/dist/Debug/lib/libintel-gcm-wrap_c_lib.a; \
-	fi
 
-	ar rcs module.a module.o bn_ops.o tmp/*.o
+	set -e; for lib in $(NSS_LIBS); do \
+		mkdir -p tmp/$$(basename $$lib .a); \
+		( cd tmp/$$(basename $$lib .a) && ar x $$lib ); \
+	done
+
+	ar qc module.a module.o bn_ops.o
+	find tmp/ -name '*.o' -print0 | xargs -0 ar q module.a
+
 	rm -rf tmp/
 	ranlib module.a
-poc : poc.cpp
+
+poc : poc.cpp module.a
 	test $(NSS_NSPR_PATH)
 	$(CXX) $(CXXFLAGS) \
 		-I $(NSS_NSPR_PATH)/dist/public/nss \
@@ -45,31 +56,14 @@ poc : poc.cpp
 		-I $(NSS_NSPR_PATH)/nss/lib/pk11wrap \
 		-I $(NSS_NSPR_PATH)/nss/cpputil \
 		poc.cpp \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libnss_static.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libcertdb.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libpk11wrap_static.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libsoftokn_static.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libcerthi.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libcryptohi.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libnsspki.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libnssb.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libnssdev.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libnssutil.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libplds4.a \
-		$(NSS_NSPR_PATH)/nspr/Debug/pr/src/libnspr4.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libplc4.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libnss_static.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libfreebl_static.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libhw-acc-crypto-avx.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libhw-acc-crypto-avx2.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libghash-aes-x86_c_lib.a \
-		$(NSS_NSPR_PATH)/dist/Debug/lib/libgcm.a \
-		$(shell [ -f $(NSS_NSPR_PATH)/dist/Debug/lib/libintel-gcm-wrap_c_lib.a ] && echo $(NSS_NSPR_PATH)/dist/Debug/lib/libintel-gcm-wrap_c_lib.a) \
+		module.a \
 		-lsqlite3 \
 		-o poc
+
 bn_ops.o: bn_ops.cpp bn_ops.h
 	test $(NSS_NSPR_PATH)
 	$(CXX) $(CXXFLAGS) -I $(NSS_NSPR_PATH)/dist/public/nss -I $(NSS_NSPR_PATH)/dist/Debug/include/nspr -I $(NSS_NSPR_PATH)/nss/lib/freebl -I $(NSS_NSPR_PATH)/nss/lib/freebl/mpi -c bn_ops.cpp -o bn_ops.o
+
 module.o: module.cpp module.h bn_ops.h
 	test $(NSS_NSPR_PATH)
 	$(CXX) $(CXXFLAGS) -I $(NSS_NSPR_PATH)/dist/public/nss -I $(NSS_NSPR_PATH)/dist/Debug/include/nspr -I $(NSS_NSPR_PATH)/nss/lib/freebl -I $(NSS_NSPR_PATH)/nss/lib/pk11wrap -I $(NSS_NSPR_PATH)/nss/cpputil -fPIC -c module.cpp -o module.o
