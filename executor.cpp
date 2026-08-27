@@ -127,7 +127,8 @@ template<> void ExecutorBase<component::Ciphertext, operation::SymmetricEncrypt>
 
         bool tryDecrypt = true;
 
-        if ( module->ID == CF_MODULE("OpenSSL") ) {
+        if ( module->ID == CF_MODULE("OpenSSL") ||
+             module->ID == CF_MODULE("wolfCrypt-OpenSSL") ) {
             switch ( op.cipher.cipherType.Get() ) {
                 case    ID("Cryptofuzz/Cipher/AES_128_OCB"):
                 case    ID("Cryptofuzz/Cipher/AES_256_OCB"):
