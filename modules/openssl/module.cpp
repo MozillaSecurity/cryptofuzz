@@ -3967,32 +3967,40 @@ std::optional<component::Bignum> OpenSSL::OpDSA_PrivateToPublic(operation::DSA_P
     std::optional<component::Bignum> ret = std::nullopt;
     Datasource ds(op.modifier.GetPtr(), op.modifier.GetSize());
 
-    global_ds = &ds;
-    OpenSSL_bignum::Bignum priv(ds);
-    DSA* dsa = nullptr;
-    char* str;
-    const BIGNUM* pub = nullptr;
+    /* OpenSSL DSA_generate_key needs p/q/g; we only have p/g/priv, so compute pub = g^priv mod p manually */
+    BIGNUM *p_bn = nullptr, *g_bn = nullptr, *priv_bn = nullptr, *pub_bn = nullptr;
+    BN_CTX* ctx = nullptr;
+    char* str = nullptr;
     std::string pub_str;
 
-    CF_CHECK_EQ(priv.Set(op.priv.ToString(ds)), true);
+    /* Parse decimal strings into BIGNUMs */
+    const std::string p_str = op.p.ToString(ds);
+    const std::string g_str = op.g.ToString(ds);
+    const std::string priv_str = op.priv.ToString(ds);
 
-    CF_CHECK_NE(dsa = DSA_new(), nullptr);
-    CF_CHECK_NE(DSA_set0_key(dsa, nullptr, priv.GetDestPtr()), 0);
-    priv.ReleaseOwnership();
+    CF_CHECK_NE(p_bn = BN_new(), nullptr);
+    CF_CHECK_NE(g_bn = BN_new(), nullptr);
+    CF_CHECK_NE(priv_bn = BN_new(), nullptr);
+    CF_CHECK_GT(BN_dec2bn(&p_bn, p_str.c_str()), 0);
+    CF_CHECK_GT(BN_dec2bn(&g_bn, g_str.c_str()), 0);
+    CF_CHECK_GT(BN_dec2bn(&priv_bn, priv_str.c_str()), 0);
 
-    CF_CHECK_NE(DSA_generate_key(dsa), 0);
-    CF_NORET(DSA_get0_key(dsa, &pub, nullptr));
-    CF_CHECK_NE(str = BN_bn2dec(pub), nullptr);
+    CF_CHECK_NE(ctx = BN_CTX_new(), nullptr);
+    CF_CHECK_NE(pub_bn = BN_new(), nullptr);
+    CF_CHECK_NE(BN_mod_exp(pub_bn, g_bn, priv_bn, p_bn, ctx), 0);
+
+    CF_CHECK_NE(str = BN_bn2dec(pub_bn), nullptr);
     pub_str = str;
     OPENSSL_free(str);
 
     ret = pub_str;
 
 end:
-
-    CF_NORET(DSA_free(dsa));
-
-    global_ds = nullptr;
+    if (ctx != nullptr) BN_CTX_free(ctx);
+    if (pub_bn != nullptr) BN_free(pub_bn);
+    if (priv_bn != nullptr) BN_free(priv_bn);
+    if (g_bn != nullptr) BN_free(g_bn);
+    if (p_bn != nullptr) BN_free(p_bn);
 
     return ret;
 }
